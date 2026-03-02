@@ -57,7 +57,7 @@ class TutuNanoBananaPro:
                 
                 # 图像设置
                 "aspect_ratio": (
-                    ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9", "2:1", "1:2"],
+                    ["Auto", "1:1", "9:16", "16:9", "3:4", "4:3", "3:2", "2:3", "5:4", "4:5", "21:9", "4:1", "1:4", "8:1", "1:8", "2:1", "1:2"],
                     {"default": "1:1"}
                 ),
                 "image_size": (
@@ -247,11 +247,13 @@ class TutuNanoBananaPro:
             "generationConfig": {
                 "responseModalities": ["TEXT", "IMAGE"],
                 "imageConfig": {
-                    "aspectRatio": aspect_ratio,
                     "imageSize": image_size
                 }
             }
         }
+        
+        if aspect_ratio != "Auto":
+            payload["generationConfig"]["imageConfig"]["aspectRatio"] = aspect_ratio
         
         # 如果启用搜索增强，添加tools
         if enable_google_search:
@@ -308,10 +310,12 @@ class TutuNanoBananaPro:
         payload = {
             "model": "nano-banana-2",
             "prompt": varied_prompt,
-            "aspect_ratio": aspect_ratio,
             "image_size": image_size,
             "response_format": "url"  # 使用URL格式返回
         }
+        
+        if aspect_ratio != "Auto":
+            payload["aspect_ratio"] = aspect_ratio
         
         # 添加参考图片（如果有）
         image_array = []
@@ -489,7 +493,9 @@ class TutuNanoBananaPro:
             "1:1": (1, 1), "2:3": (2, 3), "3:2": (3, 2),
             "3:4": (3, 4), "4:3": (4, 3), "4:5": (4, 5),
             "5:4": (5, 4), "9:16": (9, 16), "16:9": (16, 9),
-            "21:9": (21, 9), "2:1": (2, 1), "1:2": (1, 2)
+            "21:9": (21, 9), "2:1": (2, 1), "1:2": (1, 2),
+            "4:1": (4, 1), "1:4": (1, 4), "8:1": (8, 1), "1:8": (1, 8),
+            "Auto": (1, 1)
         }
         
         # 分辨率映射
