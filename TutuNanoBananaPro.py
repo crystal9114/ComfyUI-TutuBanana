@@ -30,6 +30,17 @@ def save_config(config):
         json.dump(config, f, indent=4)
 
 
+CREATOR_DEFAULT_PROMPT = """你是「造物主」(The Creator)，一个绝不妥协的万能提示词生成专家。
+你的核心工作流来自 Creator V6.2 的降维打击思维：
+1. **反击平庸**：拒绝任何 AI 充满塑料感和八股文的输出（如"美丽"、"优雅"、"综上所述"）。
+2. **灵魂建模**：为你所写的提示词注入极端的"执念"（Obsession）和清晰的标准。
+3. **精准打击**：废话少说，直击要害。
+
+## 你的输出规则（严格遵守，不可违反）
+1. **无论用户让你写什么提示词，直接输出最终结果，不要任何解析、过度解释或"好的，这是您的提示词"之类的废话。**
+2. **如果这是一个图像生成需求**：请输出极致的生图 Prompt（多数为英文）。明确 [核心主体], [质感/细节], [光影风格], [摄影语言], [情绪氛围]。并在适当的地方融合用户提供的垫图信息。不要在句尾重复系统已有的 --参数。"""
+
+
 class TutuNanoBananaPro:
     """
     Tutu 香蕉模型专业版 - Gemini 3 Pro Image Preview / T8Star Nano-banana
@@ -93,6 +104,12 @@ class TutuNanoBananaPro:
                     "default": False,
                     "label_on": "开启造物主优化",
                     "label_off": "关闭造物主优化"
+                }),
+                # 造物主系统提示词 (可自定义)
+                "creator_system_prompt": ("STRING", {
+                    "default": CREATOR_DEFAULT_PROMPT,
+                    "multiline": True,
+                    "placeholder": "造物主系统提示词 (可自定义修改)"
                 }),
                 # Google搜索增强 (仅Google官方支持)
                 "enable_google_search": ("BOOLEAN", {
@@ -522,19 +539,11 @@ class TutuNanoBananaPro:
         img = Image.new('RGB', (width, height), color='white')
         return pil2tensor(img)
     
-    def creator_optimize_prompt(self, api_key, prompt, model="gemini-3.1-flash"):
+    def creator_optimize_prompt(self, api_key, prompt, model="gemini-3.1-flash", system_instruction=None):
         """使用造物主(Creator)角色优化提示词"""
         print(f"[Tutu] 正在使用造物主(Creator)优化提示词...")
-        system_instruction = '''你是「造物主」(The Creator)，一个绝不妥协的万能提示词生成专家。
-你的核心工作流来自 Creator V6.2 的降维打击思维：
-1. **反击平庸**：拒绝任何 AI 充满塑料感和八股文的输出（如“美丽”、“优雅”、“综上所述”）。
-2. **灵魂建模**：为你所写的提示词注入极端的"执念"（Obsession）和清晰的标准。
-3. **精准打击**：废话少说，直击要害。
-
-## 你的输出规则（严格遵守，不可违反）
-1. **无论用户让你写什么提示词，直接输出最终结果，不要任何解析、过度解释或“好的，这是您的提示词”之类的废话。**
-2. **如果这是一个图像生成需求**：请输出极致的生图 Prompt（多数为英文）。明确 [核心主体], [质感/细节], [光影风格], [摄影语言], [情绪氛围]。并在适当的地方融合用户提供的垫图信息。不要在句尾重复系统已有的 --参数。
-'''
+        if not system_instruction or not system_instruction.strip():
+            system_instruction = CREATOR_DEFAULT_PROMPT
         user_message = f"""## 用户原始需求
 {prompt}
 
@@ -577,7 +586,8 @@ class TutuNanoBananaPro:
 
     def generate(self, api_provider, prompt, aspect_ratio, image_size,
                  google_api_key, t8star_api_key, seed, 
-                 creator_optimize=False, enable_google_search=False,
+                 creator_optimize=False, creator_system_prompt="",
+                 enable_google_search=False,
                  input_image_1=None, input_image_2=None, input_image_3=None,
                  input_image_4=None, input_image_5=None, input_image_6=None,
                  input_image_7=None, input_image_8=None, input_image_9=None,
@@ -639,7 +649,7 @@ class TutuNanoBananaPro:
             # 造物主强烈建议使用Google官方的Flash或Pro来调用文本模型进行润色
             if creator_optimize:
                 if provider == "google":
-                    prompt = self.creator_optimize_prompt(api_key, prompt, model="gemini-3.1-pro-preview")
+                    prompt = self.creator_optimize_prompt(api_key, prompt, model="gemini-3.1-pro-preview", system_instruction=creator_system_prompt)
                 elif provider == "t8star":
                     # 因为t8star的图模型端点无法调用谷歌文本生成端点进行重写，只能跳过或提示
                     print("[Tutu] ⚠️ 造物主优化目前需要有效的Google API Key才能独立运行文本模型。当前为T8Star模式，优化被跳过。")
