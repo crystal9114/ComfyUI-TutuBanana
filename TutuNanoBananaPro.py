@@ -41,6 +41,13 @@ CREATOR_DEFAULT_PROMPT = """你是「造物主」(The Creator)，一个绝不妥
 2. **如果这是一个图像生成需求**：请输出极致的生图 Prompt（多数为英文）。明确 [核心主体], [质感/细节], [光影风格], [摄影语言], [情绪氛围]。并在适当的地方融合用户提供的垫图信息。不要在句尾重复系统已有的 --参数。"""
 
 
+# 不受API支持的比例 -> 最接近的受支持比例 (用于生成后裁剪)
+UNSUPPORTED_RATIO_MAP = {
+    "2:1": "21:9",   # 2.0 -> 2.333, 生成后居中裁剪到 2:1
+    "1:2": "9:16",   # 0.5 -> 0.5625, 生成后居中裁剪到 1:2
+}
+
+
 class TutuNanoBananaPro:
     """
     Tutu 香蕉模型专业版 - Gemini 3 Pro Image Preview / T8Star Nano-banana
@@ -275,8 +282,13 @@ class TutuNanoBananaPro:
             }
         }
         
-        if aspect_ratio != "Auto":
-            payload["generationConfig"]["imageConfig"]["aspectRatio"] = aspect_ratio
+        # 将不受支持的比例映射为最接近的受支持比例
+        api_aspect_ratio = UNSUPPORTED_RATIO_MAP.get(aspect_ratio, aspect_ratio)
+        if api_aspect_ratio != aspect_ratio:
+            print(f"[Tutu] \U0001f504 比例映射: {aspect_ratio} -> {api_aspect_ratio} (生成后将裁剪回 {aspect_ratio})")
+        
+        if api_aspect_ratio != "Auto":
+            payload["generationConfig"]["imageConfig"]["aspectRatio"] = api_aspect_ratio
         
         # 如果启用搜索增强，添加tools
         if enable_google_search:
@@ -337,8 +349,10 @@ class TutuNanoBananaPro:
             "response_format": "url"  # 使用URL格式返回
         }
         
-        if aspect_ratio != "Auto":
-            payload["aspect_ratio"] = aspect_ratio
+        # 将不受支持的比例映射为最接近的受支持比例
+        api_aspect_ratio = UNSUPPORTED_RATIO_MAP.get(aspect_ratio, aspect_ratio)
+        if api_aspect_ratio != "Auto":
+            payload["aspect_ratio"] = api_aspect_ratio
         
         # 添加参考图片（如果有）
         image_array = []
@@ -539,6 +553,34 @@ class TutuNanoBananaPro:
         img = Image.new('RGB', (width, height), color='white')
         return pil2tensor(img)
     
+    def crop_to_target_ratio(self, image_tensor, target_ratio_str):
+        """将图片居中裁剪到目标宽高比"""
+        # 解析目标比例
+        w_ratio, h_ratio = map(int, target_ratio_str.split(":"))
+        target_ratio = w_ratio / h_ratio
+        
+        # image_tensor shape: (batch, height, width, channels)
+        _, h, w, _ = image_tensor.shape
+        current_ratio = w / h
+        
+        if abs(current_ratio - target_ratio) < 0.01:
+            return image_tensor  # 已经足够接近
+        
+        if current_ratio > target_ratio:
+            # 当前比原目标宽，需要裁剪宽度
+            new_w = int(h * target_ratio)
+            offset = (w - new_w) // 2
+            cropped = image_tensor[:, :, offset:offset+new_w, :]
+            print(f"[Tutu] \u2702\ufe0f 裁剪宽度: {w}x{h} -> {new_w}x{h} (目标比例 {target_ratio_str})")
+        else:
+            # 当前比原目标高，需要裁剪高度
+            new_h = int(w / target_ratio)
+            offset = (h - new_h) // 2
+            cropped = image_tensor[:, offset:offset+new_h, :, :]
+            print(f"[Tutu] \u2702\ufe0f 裁剪高度: {w}x{h} -> {w}x{new_h} (目标比例 {target_ratio_str})")
+        
+        return cropped
+    
     def creator_optimize_prompt(self, api_key, prompt, model="gemini-3.1-flash", system_instruction=None):
         """使用造物主(Creator)角色优化提示词"""
         print(f"[Tutu] 正在使用造物主(Creator)优化提示词...")
@@ -736,6 +778,11 @@ class TutuNanoBananaPro:
                 print(f"[Tutu] 其他图片已忽略:")
                 for tensor, w, h, res, idx in decoded_images[1:]:
                     print(f"[Tutu]   - 图片 {idx}: {w}x{h}")
+            
+            # 如果使用了不受API支持的比例，进行居中裁剪
+            if aspect_ratio in UNSUPPORTED_RATIO_MAP:
+                image_tensor = self.crop_to_target_ratio(image_tensor, aspect_ratio)
+                _, final_h, final_w, _ = image_tensor.shape
             
             # 9. 格式化响应文本
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
