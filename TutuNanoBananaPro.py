@@ -639,7 +639,7 @@ class TutuNanoBananaPro:
             # 造物主强烈建议使用Google官方的Flash或Pro来调用文本模型进行润色
             if creator_optimize:
                 if provider == "google":
-                    prompt = self.creator_optimize_prompt(api_key, prompt, model="gemini-3.1-flash")
+                    prompt = self.creator_optimize_prompt(api_key, prompt, model="gemini-3.1-pro-preview")
                 elif provider == "t8star":
                     # 因为t8star的图模型端点无法调用谷歌文本生成端点进行重写，只能跳过或提示
                     print("[Tutu] ⚠️ 造物主优化目前需要有效的Google API Key才能独立运行文本模型。当前为T8Star模式，优化被跳过。")
