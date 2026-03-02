@@ -784,6 +784,6 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "TutuNanoBananaPro": "🍌 Tutu 图图的香蕉模型专业版/香蕉2 (Google官方 / T8Star)",
+    "TutuNanoBananaPro": "🍌 ✨颖的设计小站✨ 专业版/香蕉2 (Google官方 / T8Star)",
 }
 
