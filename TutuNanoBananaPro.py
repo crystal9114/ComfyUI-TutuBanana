@@ -48,8 +48,8 @@ class TutuNanoBananaPro:
             "required": {
                 # API提供商选择
                 "api_provider": (
-                    ["Google官方", "T8Star"],
-                    {"default": "Google官方"}
+                    ["Gemini 3 Pro Image Preview", "Gemini 3.1 Flash Image Preview", "T8Star"],
+                    {"default": "Gemini 3 Pro Image Preview"}
                 ),
                 
                 # 提示词 - 从外部输入
@@ -124,10 +124,16 @@ class TutuNanoBananaPro:
     
     def get_api_config(self, api_provider):
         """获取API配置"""
-        if api_provider == "Google官方":
+        if api_provider == "Gemini 3 Pro Image Preview" or api_provider == "Google官方":
             return {
                 "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent",
                 "model": "gemini-3-pro-image-preview",
+                "provider": "google"
+            }
+        elif api_provider == "Gemini 3.1 Flash Image Preview":
+            return {
+                "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent",
+                "model": "gemini-3.1-flash-image-preview",
                 "provider": "google"
             }
         else:  # T8Star
