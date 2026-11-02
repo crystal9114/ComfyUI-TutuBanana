@@ -273,7 +273,8 @@ class TutuGeminiAPI:
     def get_current_api_key(self, api_provider):
         """根据API提供商获取对应的API key"""
         if api_provider == "OpenRouter":
-            return self.openrouter_api_key
+            # 节点里没填就用环境里的入口 key（密匣 openrouter.env 的 OPENROUTER_API_KEY）
+            return self.openrouter_api_key or os.environ.get("OPENROUTER_API_KEY", "")
         else:
             return self.comfly_api_key
             
@@ -1101,7 +1102,9 @@ class TutuGeminiAPI:
         
         # 根据API提供商设置端点
         if api_provider == "OpenRouter":
-            api_endpoint = "https://openrouter.ai/api/v1/chat/completions"
+            # 走统一入口 llm-router（出图先反代、不行再 OpenRouter），不直连 openrouter.ai；
+            # 入口地址与 key 可用环境变量 OPENROUTER_BASE_URL / OPENROUTER_API_KEY（密匣 openrouter.env）覆盖
+            api_endpoint = (os.environ.get("OPENROUTER_BASE_URL") or "https://ag.crystalwind.fun/v1").rstrip("/") + "/chat/completions"
         else:
             api_endpoint = "https://ai.comfly.chat/v1/chat/completions"
 
